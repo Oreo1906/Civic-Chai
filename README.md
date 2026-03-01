@@ -1,5 +1,5 @@
 
-  # Design website hero section
+  # Civic Chai
 
   This is a code bundle for Design website hero section. The original project is available at https://www.figma.com/design/q1rX3EVmH3gmTZPW3eP0Cz/Design-website-hero-section.
 
