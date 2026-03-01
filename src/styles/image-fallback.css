@@ -1,0 +1,6 @@
+.image-fallback-container {
+  display: inline-block;
+  background-color: #f3f4f6;
+  text-align: center;
+  vertical-align: middle;
+}
