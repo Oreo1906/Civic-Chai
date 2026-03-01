@@ -20,7 +20,7 @@ export function ImpactStories() {
   ];
 
   return (
-    <section className="bg-[#FAF8F5] py-20 md:py-28">
+    <section className="bg-white py-20 md:py-28">
       <div className="container mx-auto px-6 lg:px-12">
         {/* Section Heading */}
         <h2 
