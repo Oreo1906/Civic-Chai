@@ -1,25 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import logo from '../../assets/39e95c412ab01117e76e1d51f2ff5403cab1cfd6.png';
 
 interface NavigationProps {
   onLoginClick?: () => void;
   onSignUpClick?: () => void;
   onNavClick?: (section: string) => void;
+  activeSection?: string;
 }
 
-// Sections with dark backgrounds → nav stays white
-// Sections with light backgrounds → nav switches to black
 const DARK_SECTIONS = ['hero', 'community-stats', 'footer-section'];
 
-export function Navigation({ onLoginClick, onSignUpClick: _onSignUpClick, onNavClick }: NavigationProps) {
+export function Navigation({ onLoginClick, onSignUpClick: _onSignUpClick, onNavClick, activeSection }: NavigationProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isDark, setIsDark] = useState(true); // hero is dark, so start white
+  const [isDark, setIsDark] = useState(true);
+  const [activeItem, setActiveItem] = useState(() => {
+    // Map section to menu item
+    const sectionToItem: { [key: string]: string } = {
+      'home': 'Home',
+      'about': 'About',
+      'discussions': 'Discussions',
+      'community-feed': 'Community Feed',
+      'impact-stories': 'Impact Stories',
+    };
+    return sectionToItem[activeSection || 'home'] || 'Home';
+  });
+  const [underlineStyle, setUnderlineStyle] = useState({ left: 0, width: 0, opacity: 0 });
+  const menuRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<{ [key: string]: HTMLAnchorElement | null }>({});
 
   const menuItems = [
     'Home',
     'About',
     'Discussions',
-    'Raise Concern',
+    'Community Feed',
     'Impact Stories',
     'Contact'
   ];
@@ -28,17 +41,16 @@ export function Navigation({ onLoginClick, onSignUpClick: _onSignUpClick, onNavC
     'Home': 'home',
     'About': 'about',
     'Discussions': 'discussions',
-    'Raise Concern': '#',
+    'Community Feed': 'community-feed',
     'Impact Stories': 'impact-stories',
     'Contact': '#'
   };
 
+  // Scroll detection for dark/light bg
   useEffect(() => {
     const handleScroll = () => {
       const navHeight = 80;
       const scrollY = window.scrollY;
-
-      // Check each dark section to see if nav is currently over it
       const overDark = DARK_SECTIONS.some((id) => {
         const el = document.getElementById(id);
         if (!el) return false;
@@ -46,15 +58,51 @@ export function Navigation({ onLoginClick, onSignUpClick: _onSignUpClick, onNavC
         const bottom = top + el.offsetHeight;
         return scrollY + navHeight / 2 >= top && scrollY + navHeight / 2 < bottom;
       });
-
       setIsDark(overDark);
     };
-
-    // Run once on mount to set initial state
     handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Recalculate underline position whenever activeItem or menu mounts
+  useEffect(() => {
+    const el = itemRefs.current[activeItem];
+    const container = menuRef.current;
+    if (!el || !container) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+
+    setUnderlineStyle({
+      left: elRect.left - containerRect.left,
+      width: elRect.width,
+      opacity: 1,
+    });
+  }, [activeItem, menuItems]);
+
+  // Recalculate on resize
+  useEffect(() => {
+    const handleResize = () => {
+      const el = itemRefs.current[activeItem];
+      const container = menuRef.current;
+      if (!el || !container) return;
+      const containerRect = container.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      setUnderlineStyle({
+        left: elRect.left - containerRect.left,
+        width: elRect.width,
+        opacity: 1,
+      });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [activeItem]);
+
+  const handleNavClick = (item: string) => {
+    setActiveItem(item);
+    onNavClick?.(sectionMap[item]);
+  };
 
   const textColor = isDark ? 'text-white' : 'text-gray-900';
   const borderColor = isDark ? 'border-white' : 'border-gray-900';
@@ -62,6 +110,12 @@ export function Navigation({ onLoginClick, onSignUpClick: _onSignUpClick, onNavC
   const hoverLoginClass = isDark
     ? 'hover:bg-white hover:text-black'
     : 'hover:bg-gray-900 hover:text-white';
+
+  // Underline color + glow based on bg
+  const underlineColor = isDark ? '#ffffff' : '#111111';
+  const underlineGlow = isDark
+    ? '0 0 6px rgba(255,255,255,0.9), 0 0 14px rgba(255,255,255,0.4)'
+    : 'none';
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 transition-colors duration-300">
@@ -77,27 +131,59 @@ export function Navigation({ onLoginClick, onSignUpClick: _onSignUpClick, onNavC
             />
           </div>
 
-          {/* Desktop Menu links */}
-          <div className="hidden lg:flex items-center gap-8 flex-1 justify-center ml-12">
+          {/* Desktop Menu — position relative so underline is absolute inside */}
+          <div
+            ref={menuRef}
+            className="hidden lg:flex items-center gap-8 flex-1 justify-center ml-12 relative"
+          >
             {menuItems.map((item) => (
               <a
                 key={item}
+                ref={(el) => { itemRefs.current[item] = el; }}
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
-                  onNavClick?.(sectionMap[item]);
+                  handleNavClick(item);
                 }}
-                className={`${textColor} hover:opacity-70 transition-all duration-300`}
+                className={`${textColor} transition-all duration-300 pb-1`}
                 style={{
                   fontFamily: "'Poppins', sans-serif",
                   fontSize: '0.95rem',
-                  fontWeight: 500,
+                  fontWeight: activeItem === item ? 600 : 500,
                   letterSpacing: '0.01em',
+                  opacity: activeItem === item ? 1 : 0.75,
+                }}
+                onMouseEnter={(e) => {
+                  if (activeItem !== item) {
+                    (e.currentTarget as HTMLAnchorElement).style.opacity = '1';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (activeItem !== item) {
+                    (e.currentTarget as HTMLAnchorElement).style.opacity = '0.75';
+                  }
                 }}
               >
                 {item}
               </a>
             ))}
+
+            {/* Sliding underline indicator */}
+            <span
+              style={{
+                position: 'absolute',
+                bottom: '-4px',
+                left: underlineStyle.left,
+                width: underlineStyle.width,
+                height: '2.5px',
+                borderRadius: '99px',
+                background: underlineColor,
+                boxShadow: underlineGlow,
+                opacity: underlineStyle.opacity,
+                transition: 'left 350ms cubic-bezier(0.4, 0, 0.2, 1), width 350ms cubic-bezier(0.4, 0, 0.2, 1), background 300ms ease, box-shadow 300ms ease, opacity 200ms ease',
+                pointerEvents: 'none',
+              }}
+            />
           </div>
 
           {/* Login Button — Desktop */}
@@ -139,18 +225,30 @@ export function Navigation({ onLoginClick, onSignUpClick: _onSignUpClick, onNavC
               <a
                 key={item}
                 href="#"
-                className="text-white hover:text-white/80 transition-colors py-2"
+                className="transition-colors py-2 flex items-center gap-2"
                 style={{
                   fontFamily: "'Poppins', sans-serif",
                   fontSize: '1rem',
-                  fontWeight: 500,
+                  fontWeight: activeItem === item ? 600 : 500,
+                  color: activeItem === item ? '#ffffff' : 'rgba(255,255,255,0.65)',
                 }}
                 onClick={(e) => {
                   e.preventDefault();
-                  onNavClick?.(sectionMap[item]);
+                  handleNavClick(item);
                   setIsMenuOpen(false);
                 }}
               >
+                {/* Active dot indicator for mobile */}
+                <span style={{
+                  width: '5px',
+                  height: '5px',
+                  borderRadius: '50%',
+                  background: activeItem === item ? '#ffffff' : 'transparent',
+                  border: '1.5px solid rgba(255,255,255,0.3)',
+                  display: 'inline-block',
+                  flexShrink: 0,
+                  transition: 'background 200ms ease',
+                }} />
                 {item}
               </a>
             ))}

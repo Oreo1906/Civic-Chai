@@ -10,11 +10,14 @@ import { ImpactStories } from './components/ImpactStories';
 import { Footer } from './components/Footer';
 import { Login } from './components/Login';
 import { SignUp } from './components/SignUp';
+import { CommunityFeed } from './components/CommunityFeed';
 import bgImage from '../assets/0644b590a28da90de87cd44bb08d574a39b22246.png';
+import feedBg from '../assets/Gemini_Generated_Image_10zdtl10zdtl10zd.png';
 
 export default function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [showSignUp, setShowSignUp] = useState(false);
+  const [showCommunityFeed, setShowCommunityFeed] = useState(false);
   
   const homeRef = useRef<HTMLDivElement>(null);
   const aboutRef = useRef<HTMLDivElement>(null);
@@ -31,6 +34,25 @@ export default function App() {
 
   if (showSignUp) {
     return <SignUp onBackClick={() => setShowSignUp(false)} onLoginClick={() => { setShowSignUp(false); setShowLogin(true); }} />;
+  }
+
+  if (showCommunityFeed) {
+    return <CommunityFeed onLoginClick={() => setShowLogin(true)} onNavClick={(section) => { 
+      if (section === 'home') setShowCommunityFeed(false); 
+      // Handle other sections by scrolling to them when returning to main page
+      if (section === 'about') {
+        setShowCommunityFeed(false);
+        setTimeout(() => scrollToSection(aboutRef), 100);
+      }
+      if (section === 'discussions') {
+        setShowCommunityFeed(false);
+        setTimeout(() => scrollToSection(discussionsRef), 100);
+      }
+      if (section === 'impact-stories') {
+        setShowCommunityFeed(false);
+        setTimeout(() => scrollToSection(impactStoriesRef), 100);
+      }
+    }} bgImage={feedBg} />;
   }
 
   return (
@@ -58,6 +80,7 @@ export default function App() {
             if (section === 'home') scrollToSection(homeRef);
             if (section === 'about') scrollToSection(aboutRef);
             if (section === 'discussions') scrollToSection(discussionsRef);
+            if (section === 'community-feed') setShowCommunityFeed(true);
             if (section === 'impact-stories') scrollToSection(impactStoriesRef);
           }}
         />
@@ -98,6 +121,7 @@ export default function App() {
           if (section === 'home') scrollToSection(homeRef);
           if (section === 'about') scrollToSection(aboutRef);
           if (section === 'discussions') scrollToSection(discussionsRef);
+          if (section === 'community-feed') setShowCommunityFeed(true);
           if (section === 'impact-stories') scrollToSection(impactStoriesRef);
         }}
       />
